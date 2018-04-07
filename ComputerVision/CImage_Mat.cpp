@@ -18,10 +18,10 @@ void CImage_Mat::CImageToMat(CImage & cimage, cv::Mat & mat)
 		return;
 	}
 	int nChannels = cimage.GetBPP() / 8;
-	if ((1 != nChannels) && (3 != nChannels))
+	/*if ((1 != nChannels) && (3 != nChannels))
 	{
 		return;
-	}
+	}*/
 	int nWidth = cimage.GetWidth();
 	int nHeight = cimage.GetHeight();
 
@@ -34,6 +34,12 @@ void CImage_Mat::CImageToMat(CImage & cimage, cv::Mat & mat)
 	{
 		mat.create(nHeight, nWidth, CV_8UC3);
 	}
+	else if (4 == nChannels) {//CImage::Load将8位读成32位
+
+		mat.create(nHeight, nWidth, CV_8UC1);
+
+	}
+
 	//拷贝数据  
 	uchar* pucRow;                                  //指向数据区的行指针  
 	uchar* pucImage = (uchar*)cimage.GetBits();     //指向数据区的指针  
@@ -54,6 +60,12 @@ void CImage_Mat::CImageToMat(CImage & cimage, cv::Mat & mat)
 				{
 					pucRow[nCol * 3 + nCha] = *(pucImage + nRow * nStep + nCol * 3 + nCha);
 				}
+			}
+			else if (4 == nChannels) {
+
+				pucRow[nCol] = *(pucImage + nRow * nStep + nCol * 4);
+				
+
 			}
 		}
 	}
