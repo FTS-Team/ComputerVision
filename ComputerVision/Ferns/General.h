@@ -169,8 +169,8 @@ public:
 	static void displayRateOfProgress(double current, double total)
 	{
 		static const int progressBarSize = 50;
-		if((current + 1)*progressBarSize / total != current * progressBarSize / total)
-		_cprintf("%.1f\%\n", current / total * 100);
+		if((int)((current + 1)*progressBarSize / total) != (int)(current * progressBarSize / total))
+			_cprintf("%.1f\%\n", current / total * 100);
 		//std::cout << setiosflags(ios::fixed) << setprecision(1) << current / total * 100 << '%' << std::flush;
 	}
 
