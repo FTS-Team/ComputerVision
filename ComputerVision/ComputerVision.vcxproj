@@ -187,6 +187,11 @@
   <ItemGroup>
     <ClInclude Include="ComputerVision.h" />
     <ClInclude Include="ComputerVisionDlg.h" />
+    <ClInclude Include="Ferns\FernClassifier.h" />
+    <ClInclude Include="Ferns\General.h" />
+    <ClInclude Include="Ferns\PatchGenerator.h" />
+    <ClInclude Include="Ferns\PlanarObjectDetector.h" />
+    <ClInclude Include="Ferns\Yape.h" />
     <ClInclude Include="ImageMatch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -197,6 +202,10 @@
     <ClCompile Include="CImage_Mat.cpp" />
     <ClCompile Include="ComputerVision.cpp" />
     <ClCompile Include="ComputerVisionDlg.cpp" />
+    <ClCompile Include="Ferns\FernClassifier.cpp" />
+    <ClCompile Include="Ferns\PatchGenerator.cpp" />
+    <ClCompile Include="Ferns\PlanarObjectDetector.cpp" />
+    <ClCompile Include="Ferns\Yape.cpp" />
     <ClCompile Include="ImageMatch.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
