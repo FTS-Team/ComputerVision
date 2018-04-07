@@ -27,6 +27,8 @@ public:
 
 	static UINT ORBMatch(CImage& CImage1, CImage & CImage2);//基于ORB的图像匹配算法
 
+	static UINT FERNS(CString img1_path, CString img2_path);//基于Ferns的图像匹配算法
+
 private:
 
 	//RANSAC算法实现 

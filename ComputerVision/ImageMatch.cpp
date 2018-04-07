@@ -1,7 +1,10 @@
 #include "stdafx.h"
 
 #include "ImageMatch.h"
-
+#include "Ferns\Yape.h"
+#include "Ferns\PatchGenerator.h"
+#include "Ferns\PlanarObjectDetector.h"
+#include <conio.h>
 
 
 UINT ImageMatch::SIFT(CImage& CImage1, CImage& CImage2) {
@@ -172,6 +175,134 @@ UINT ImageMatch::ORBMatch(CImage& CImage1, CImage & CImage2) {
 
 	return 0;
 
+}
+
+UINT ImageMatch::FERNS(CString img1_path, CString img2_path)
+{
+	// 将CString转换为ascii编码
+	CT2A img1_path_char(img1_path);
+	CT2A img2_path_char(img2_path);
+
+	// 加载图片
+	Mat object = imread(img1_path_char.m_psz, CV_LOAD_IMAGE_GRAYSCALE);
+	if(!object.data)
+	{
+		_cprintf("Can not load %s \n"
+			"Usage: find_obj [<object_filename> ]\n",
+			img1_path_char.m_psz);
+		return 1;
+	}
+
+	Size patchSize(32, 32);
+	Yape yape_detector(7, 20, 4, 5000, patchSize.width, 2);
+	yape_detector.setVerbose(true);
+	PlanarObjectDetector detector;
+
+	vector<Mat> objpyr;
+	int blurKSize = 7;
+	double sigma = 0;
+	GaussianBlur(object, object, Size(blurKSize, blurKSize), sigma, sigma);
+
+	vector<KeyPoint> objKeypoints;
+	PatchGenerator gen(0, 256, 5);
+
+	// 尝试从文件加载分类器
+	CString img1_name = img1_path.Right(img1_path.GetLength() - img1_path.ReverseFind('\\') - 1);
+	CT2A img1_name_char(img1_name);
+	string model_filename = format(".\\Ferns Classifier Datas\\%s_model.xml.gz", img1_name_char.m_psz);
+	_cprintf("Trying to load %s ...\n", model_filename.c_str());
+	FileStorage fs(model_filename, FileStorage::READ);
+	if(fs.isOpened())
+	{
+		// 从文件中读取分类器数据
+		detector.read(fs.getFirstTopLevelNode());
+		_cprintf("Successfully loaded %s.\n", model_filename.c_str());
+		objKeypoints = detector.getModelPoints();
+	} else
+	{
+		// 对图像进行训练，获得分类器
+		_cprintf("The file not found and can not be read. Let's train the model.\n");
+		_cprintf("Step 1. Finding the robust keypoints ...\n");
+		buildPyramid(object, objpyr, yape_detector.nOctaves - 1);
+		yape_detector.setVerbose(true);
+		yape_detector.getMostStable2D(object, objKeypoints, 400, gen);
+		_cprintf("Done.\nStep 2. Training ferns-based planar object detector ...\n");
+		detector.setVerbose(true);
+
+		detector.train(objpyr, objKeypoints, patchSize.width, 30, 11, 10000, yape_detector, gen);
+		_cprintf("Done.\nStep 3. Saving the model to %s ...\n", model_filename.c_str());
+		if(fs.open(model_filename, FileStorage::WRITE))
+			detector.write(fs, "ferns_model");
+	}
+	_cprintf("Now find the keypoints in the image, try recognize them and compute the homography matrix\n");
+	fs.release();
+	_cprintf("Object keypoints: %d\n", objKeypoints.size());
+
+	// 在图1中画出特征点
+	namedWindow("Object", 1);
+	Mat objectColor;
+	cvtColor(object, objectColor, CV_GRAY2BGR);
+	for(int i = 0; i < (int) objKeypoints.size(); i++)
+	{
+		circle(objectColor, objKeypoints[i].pt, 2, Scalar(0, 0, 255), -1);
+		circle(objectColor, objKeypoints[i].pt, (1 << objKeypoints[i].octave) * 15, Scalar(0, 255, 0), 1);
+	}
+	imshow("Object", objectColor);
+
+	// 读取图2作为匹配输入
+	Mat image;
+	Mat frame, frame_gray;
+	frame = imread(img2_path_char.m_psz);
+	cvtColor(frame, frame_gray, CV_BGR2GRAY);
+
+	// 寻找图2的特征点
+	double imgscale = 1;
+	resize(frame_gray, image, Size(), 1. / imgscale, 1. / imgscale, INTER_CUBIC);
+	GaussianBlur(image, image, Size(blurKSize, blurKSize), sigma, sigma);
+
+	vector<Mat> imgpyr;
+	buildPyramid(image, imgpyr, yape_detector.nOctaves - 1);
+
+	Mat correspond(object.rows + image.rows, std::max(object.cols, image.cols), CV_8UC3);
+	correspond = Scalar(0.);
+	Mat part(correspond, Rect(0, 0, object.cols, object.rows));
+	cvtColor(object, part, CV_GRAY2BGR);
+	part = Mat(correspond, Rect(0, object.rows, image.cols, image.rows));
+	cvtColor(image, part, CV_GRAY2BGR);
+
+	// 画出图2的特征点
+	vector<KeyPoint> imgKeypoints;
+	yape_detector(imgpyr, imgKeypoints, 1000);
+
+	_cprintf("Image keypoints: %d\n", imgKeypoints.size());
+	Mat imageColor;
+	cvtColor(image, imageColor, CV_GRAY2BGR);
+	for(int i = 0; i < (int) imgKeypoints.size(); i++)
+	{
+		circle(imageColor, imgKeypoints[i].pt, 2, Scalar(0, 0, 255), -1);
+		circle(imageColor, imgKeypoints[i].pt, (1 << imgKeypoints[i].octave) * 15, Scalar(0, 255, 0), 1);
+	}
+
+	namedWindow("Image", 1);
+	imshow("Image", imageColor);
+
+	// 匹配
+	vector<Point2f> dst_corners;
+	vector<int> pairs;
+	Mat H;
+	bool found = detector(imgpyr, imgKeypoints, H, dst_corners, &pairs);
+
+	// 画出匹配点对
+	for(int i = 0; i < (int) pairs.size(); i += 2)
+	{
+		line(correspond, objKeypoints[pairs[i]].pt,
+			imgKeypoints[pairs[i + 1]].pt + Point2f(0, object.rows),
+			Scalar(0, 255, 0), 1, LINE_4);
+	}
+	namedWindow("Object Correspondence", WINDOW_GUI_EXPANDED);
+	imshow("Object Correspondence", correspond);
+
+	
 }
 
 vector<DMatch> ImageMatch::ransac(vector<DMatch> matches, vector<KeyPoint> queryKeyPoint, vector<KeyPoint> trainKeyPoint)
