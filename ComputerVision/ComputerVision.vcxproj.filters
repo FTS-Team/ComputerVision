@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="头文件\Ferns">
+      <UniqueIdentifier>{2b15fda5-aefe-44d2-a5b6-ff1024c3d157}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Ferns">
+      <UniqueIdentifier>{a3463d57-9e84-4f84-87d5-ffc5aafbb23c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ComputerVision.h">
@@ -36,6 +42,21 @@
     <ClInclude Include="CImage_Mat.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Ferns\FernClassifier.h">
+      <Filter>头文件\Ferns</Filter>
+    </ClInclude>
+    <ClInclude Include="Ferns\General.h">
+      <Filter>头文件\Ferns</Filter>
+    </ClInclude>
+    <ClInclude Include="Ferns\PatchGenerator.h">
+      <Filter>头文件\Ferns</Filter>
+    </ClInclude>
+    <ClInclude Include="Ferns\PlanarObjectDetector.h">
+      <Filter>头文件\Ferns</Filter>
+    </ClInclude>
+    <ClInclude Include="Ferns\Yape.h">
+      <Filter>头文件\Ferns</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ComputerVision.cpp">
@@ -52,6 +73,18 @@
     </ClCompile>
     <ClCompile Include="CImage_Mat.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Ferns\FernClassifier.cpp">
+      <Filter>源文件\Ferns</Filter>
+    </ClCompile>
+    <ClCompile Include="Ferns\PatchGenerator.cpp">
+      <Filter>源文件\Ferns</Filter>
+    </ClCompile>
+    <ClCompile Include="Ferns\PlanarObjectDetector.cpp">
+      <Filter>源文件\Ferns</Filter>
+    </ClCompile>
+    <ClCompile Include="Ferns\Yape.cpp">
+      <Filter>源文件\Ferns</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
