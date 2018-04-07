@@ -101,9 +101,10 @@ void Yape::getMostStable2D(const Mat& image, vector<KeyPoint>& keypoints,
 		// 5. run keypoint detector in pyramids
 		// 6. map each point back and update the lists of most stable points
 
-		if(verbose && (i + 1)*General::progressBarSize / nViews != i * General::progressBarSize / nViews)
-			putchar('.');
-
+		/*if(verbose && (i + 1)*General::progressBarSize / nViews != i * General::progressBarSize / nViews)
+			putchar('.');*/
+		if(verbose)
+			General::displayRateOfProgress(i, nViews);
 		if(i > 0)
 			patchGenerator.generateRandomTransform(Point2f(), Point2f(), matM, rng);
 		else
@@ -149,8 +150,8 @@ void Yape::getMostStable2D(const Mat& image, vector<KeyPoint>& keypoints,
 		}
 	}
 
-	if(verbose)
-		putchar('\n');
+	/*if(verbose)
+		putchar('\n');*/
 
 	if((int) keypoints.size() > maxPoints)
 	{

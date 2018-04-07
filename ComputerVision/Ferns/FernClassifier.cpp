@@ -239,8 +239,10 @@ void FernClassifier::train(const vector<vector<Point2f> >& points,
 			Point2f pt = imgPoints[pointIdx];
 			const Mat& src = refimgs[imgIdx];
 			int classId = imgLabels == 0 ? globalPointIdx : imgLabels[pointIdx];
-			if(verbose && (globalPointIdx + 1)*General::progressBarSize / numPoints != globalPointIdx * General::progressBarSize / numPoints)
-				putchar('.');
+			/*if(verbose && (globalPointIdx + 1)*General::progressBarSize / numPoints != globalPointIdx * General::progressBarSize / numPoints)
+				putchar('.');*/
+			if(verbose)
+				General::displayRateOfProgress(globalPointIdx, numPoints);
 			CV_Assert(0 <= classId && classId < nclasses);
 			classCounters[classId] += _nviews;
 			for(int v = 0; v < _nviews; v++)
@@ -251,8 +253,8 @@ void FernClassifier::train(const vector<vector<Point2f> >& points,
 			}
 		}
 	}
-	if(verbose)
-		putchar('\n');
+	/*if(verbose)
+		putchar('\n');*/
 
 	finalize(rng);
 }
@@ -354,11 +356,13 @@ void FernClassifier::trainFromSingleView(const Mat& image,
 				posteriors[getLeaf(f, patch)*nclasses + j]++;
 		}
 
-		if(verbose && (i + 1)*General::progressBarSize / _nviews != i * General::progressBarSize / _nviews)
-			putchar('.');
+		/*if(verbose && (i + 1)*General::progressBarSize / _nviews != i * General::progressBarSize / _nviews)
+			putchar('.');*/
+		if(verbose)
+			General::displayRateOfProgress(i, _nviews);
 	}
-	if(verbose)
-		putchar('\n');
+	/*if(verbose)
+		putchar('\n');*/
 
 	finalize(rng);
 }
