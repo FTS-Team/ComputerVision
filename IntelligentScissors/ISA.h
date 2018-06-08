@@ -5,7 +5,7 @@ using namespace std;
 
 #include "Utility.h"
 
-#define SPEEDUP
+//#define SPEEDUP
 
 #ifdef SPEEDUP
 #define WZ 0.43

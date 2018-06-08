@@ -160,14 +160,14 @@ void ISA::preprocessImg(Utility::ImageData* imgData, int imgType)
 	computeFio(imgData, Gxy_5x5, Gxy_9x9, D, &FI, &FO);
 #endif // !SPEEDUP
 
-	MZ *= WZ * M;
-	MG *= WG * M;
-	MD *= WD * M;
+	MZ *= WZ * 255;
+	MG *= WG * 1023;
+	MD *= WD * 255;
 
 #ifndef SPEEDUP
-	MP *= WP * M;
-	MI *= WI * M;
-	MO *= WO * M;
+	MP *= WP * 255;
+	MI *= WI * 255;
+	MO *= WO * 255;
 #endif // !SPEEDUP
 
 
@@ -208,7 +208,7 @@ void ISA::preprocessImg(Utility::ImageData* imgData, int imgType)
 					color = 255 * FD[i].findMin();
 					break;
 				case 6:
-					color = 255 * m_L[i].findMin() / M;
+					color = 255 * m_L[i].findMin() / 1024;
 					break;
 			}
 			
@@ -562,7 +562,7 @@ int * ISA::Fz(Utility::ImageData * laplacianImage)
 #pragma endregion
 		}
 
-		fz[i] = temp[0] | temp[1] | temp[2];
+		fz[i] = temp[B] | temp[G] | temp[R];
 	}
 
 	return fz;
