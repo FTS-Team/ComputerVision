@@ -183,27 +183,31 @@ UINT ImageMatch::FERNS(CString img1_path, CString img2_path)
 	CT2A img1_path_char(img1_path);
 	CT2A img2_path_char(img2_path);
 
+#pragma region pattern image
 	// 加载图片
-	Mat object = imread(img1_path_char.m_psz, CV_LOAD_IMAGE_GRAYSCALE);
-	if(!object.data)
+	Mat pattern_origin, pattern_gray;
+	pattern_origin = imread(img1_path_char.m_psz);
+	//Mat object = imread(img1_path_char.m_psz, CV_LOAD_IMAGE_GRAYSCALE);
+	if(!pattern_origin.data)
 	{
 		_cprintf("Can not load %s \n"
 			"Usage: find_obj [<object_filename> ]\n",
 			img1_path_char.m_psz);
 		return 1;
 	}
+	cvtColor(pattern_origin, pattern_gray, CV_BGR2GRAY);
 
-	Size patchSize(32, 32);
-	Yape yape_detector(7, 20, 4, 5000, patchSize.width, 2);
+	//Size patchSize(32, 32);
+	Yape yape_detector(7, 20, 4, 5000, 32, 2);
 	yape_detector.setVerbose(true);
 	PlanarObjectDetector detector;
 
-	vector<Mat> objpyr;
+	vector<Mat> pattern_pyramid;
 	int blurKSize = 7;
 	double sigma = 0;
-	GaussianBlur(object, object, Size(blurKSize, blurKSize), sigma, sigma);
+	GaussianBlur(pattern_gray, pattern_gray, Size(blurKSize, blurKSize), sigma, sigma);
 
-	vector<KeyPoint> objKeypoints;
+	vector<KeyPoint> pattern_keypoints;
 	PatchGenerator gen(0, 256, 5);
 
 	// 尝试从文件加载分类器
@@ -217,37 +221,38 @@ UINT ImageMatch::FERNS(CString img1_path, CString img2_path)
 		// 从文件中读取分类器数据
 		detector.read(fs.getFirstTopLevelNode());
 		_cprintf("Successfully loaded %s.\n", model_filename.c_str());
-		objKeypoints = detector.getModelPoints();
+		pattern_keypoints = detector.getModelPoints();
 	} else
 	{
 		// 对图像进行训练，获得分类器
 		_cprintf("The file not found and can not be read. Let's train the model.\n");
 		_cprintf("Step 1. Finding the robust keypoints ...\n");
-		buildPyramid(object, objpyr, yape_detector.nOctaves - 1);
+		buildPyramid(pattern_gray, pattern_pyramid, yape_detector.nOctaves - 1);
 		yape_detector.setVerbose(true);
-		yape_detector.getMostStable2D(object, objKeypoints, 400, gen);
+		yape_detector.getMostStable2D(pattern_gray, pattern_keypoints, 400, gen);
 		_cprintf("Done.\nStep 2. Training ferns-based planar object detector ...\n");
 		detector.setVerbose(true);
 
-		detector.train(objpyr, objKeypoints, patchSize.width, 30, 11, 10000, yape_detector, gen);
+		detector.train(pattern_pyramid, pattern_keypoints, 32, 30, 11, 10000, yape_detector, gen);
 		_cprintf("Done.\nStep 3. Saving the model to %s ...\n", model_filename.c_str());
 		if(fs.open(model_filename, FileStorage::WRITE))
 			detector.write(fs, "ferns_model");
 	}
 	_cprintf("Now find the keypoints in the image, try recognize them and compute the homography matrix\n");
 	fs.release();
-	_cprintf("Object keypoints: %d\n", objKeypoints.size());
+	_cprintf("Object keypoints: %d\n", pattern_keypoints.size());
 
 	// 在图1中画出特征点
 	namedWindow("Object", 1);
 	Mat objectColor;
-	cvtColor(object, objectColor, CV_GRAY2BGR);
-	for(int i = 0; i < (int) objKeypoints.size(); i++)
+	cvtColor(pattern_gray, objectColor, CV_GRAY2BGR);
+	for(int i = 0; i < (int)pattern_keypoints.size(); i++)
 	{
-		circle(objectColor, objKeypoints[i].pt, 2, Scalar(0, 0, 255), -1);
-		circle(objectColor, objKeypoints[i].pt, (1 << objKeypoints[i].octave) * 15, Scalar(0, 255, 0), 1);
+		circle(objectColor, pattern_keypoints[i].pt, 2, Scalar(0, 0, 255), -1);
+		circle(objectColor, pattern_keypoints[i].pt, (1 << pattern_keypoints[i].octave) * 15, Scalar(0, 255, 0), 1);
 	}
 	imshow("Object", objectColor);
+#pragma endregion
 
 	// 读取图2作为匹配输入
 	Mat image;
@@ -263,18 +268,18 @@ UINT ImageMatch::FERNS(CString img1_path, CString img2_path)
 	vector<Mat> imgpyr;
 	buildPyramid(image, imgpyr, yape_detector.nOctaves - 1);
 
-	Mat correspond(object.rows + image.rows, std::max(object.cols, image.cols), CV_8UC3);
+	Mat correspond(pattern_gray.rows + image.rows, std::max(pattern_gray.cols, image.cols), CV_8UC3);
 	correspond = Scalar(0.);
-	Mat part(correspond, Rect(0, 0, object.cols, object.rows));
-	cvtColor(object, part, CV_GRAY2BGR);
-	part = Mat(correspond, Rect(0, object.rows, image.cols, image.rows));
+	Mat part(correspond, Rect(0, 0, pattern_gray.cols, pattern_gray.rows));
+	cvtColor(pattern_gray, part, CV_GRAY2BGR);
+	part = Mat(correspond, Rect(0, pattern_gray.rows, image.cols, image.rows));
 	cvtColor(image, part, CV_GRAY2BGR);
 
 	// 画出图2的特征点
 	vector<KeyPoint> imgKeypoints;
 	yape_detector(imgpyr, imgKeypoints, 1000);
-
 	_cprintf("Image keypoints: %d\n", imgKeypoints.size());
+
 	Mat imageColor;
 	cvtColor(image, imageColor, CV_GRAY2BGR);
 	for(int i = 0; i < (int) imgKeypoints.size(); i++)
@@ -282,7 +287,6 @@ UINT ImageMatch::FERNS(CString img1_path, CString img2_path)
 		circle(imageColor, imgKeypoints[i].pt, 2, Scalar(0, 0, 255), -1);
 		circle(imageColor, imgKeypoints[i].pt, (1 << imgKeypoints[i].octave) * 15, Scalar(0, 255, 0), 1);
 	}
-
 	namedWindow("Image", 1);
 	imshow("Image", imageColor);
 
@@ -292,17 +296,28 @@ UINT ImageMatch::FERNS(CString img1_path, CString img2_path)
 	Mat H;
 	bool found = detector(imgpyr, imgKeypoints, H, dst_corners, &pairs);
 
-	// 画出匹配点对
-	for(int i = 0; i < (int) pairs.size(); i += 2)
+	vector<DMatch> matches;
+	for (int i = 0; i < (int)pairs.size(); i += 2)
 	{
-		line(correspond, objKeypoints[pairs[i]].pt,
-			imgKeypoints[pairs[i + 1]].pt + Point2f(0, object.rows),
-			Scalar(0, 255, 0), 1, LINE_4);
+		matches.push_back({ pairs[i + 1], pairs[i], 1 });
 	}
-	namedWindow("Object Correspondence", WINDOW_GUI_EXPANDED);
-	imshow("Object Correspondence", correspond);
 
-	
+	// 画出匹配点对
+	Mat outImg;
+	drawMatches
+	(
+		frame,
+		imgKeypoints,
+		pattern_origin,
+		pattern_keypoints,
+		matches,
+		outImg,
+		Scalar(0, 200, 0, 255),
+		Scalar::all(-1),
+		vector<char>(),
+		DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS
+	);
+	imshow("Object Correspondence", outImg);
 }
 
 vector<DMatch> ImageMatch::ransac(vector<DMatch> matches, vector<KeyPoint> queryKeyPoint, vector<KeyPoint> trainKeyPoint)
